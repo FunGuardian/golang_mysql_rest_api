@@ -61,28 +61,28 @@ func newUser(w http.ResponseWriter, r *http.Request) {
 	reqBody, _ := ioutil.ReadAll(r.Body)
 	var userjson UserJson
 	json.Unmarshal(reqBody, &userjson)
-	// fmt.Println(userjson)
-
-	// vars := mux.Vars(r)
-	// name := vars["name"]
-	// email := vars["email"]
 
 	db.Create(&User{Name: userjson.Name, Email: userjson.Email})
 	fmt.Fprintf(w, "New User Successfully Created")
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
+	type UserJson struct {
+		Id string `json:"Id"`
+	}
+
 	db, err := gorm.Open("mysql", "root:example@tcp(127.0.0.1:3306)/dbpm?charset=utf8&parseTime=True")
 	if err != nil {
 		panic("failed to connect database")
 	}
 	defer db.Close()
 
-	vars := mux.Vars(r)
-	name := vars["name"]
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var userjson UserJson
+	json.Unmarshal(reqBody, &userjson)
 
 	var user User
-	db.Where("name = ?", name).Find(&user)
+	db.Where("id = ?", userjson.Id).Find(&user)
 	db.Delete(&user)
 
 	fmt.Fprintf(w, "Successfully Deleted User")
@@ -111,7 +111,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 func handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/users", allUsers).Methods("GET")
-	myRouter.HandleFunc("/user/{name}", deleteUser).Methods("DELETE")
+	myRouter.HandleFunc("/user", deleteUser).Methods("DELETE")
 	myRouter.HandleFunc("/user/{name}/{email}", updateUser).Methods("PUT")
 	myRouter.HandleFunc("/user", newUser).Methods("POST")
 	log.Fatal(http.ListenAndServe(":8000", myRouter))
