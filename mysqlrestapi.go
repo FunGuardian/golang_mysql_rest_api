@@ -89,20 +89,27 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateUser(w http.ResponseWriter, r *http.Request) {
+	type UserJson struct {
+		Id    string `json:"Id"`
+		Name  string `json:"Name"`
+		Email string `json:"Email"`
+	}
+
 	db, err := gorm.Open("mysql", "root:example@tcp(127.0.0.1:3306)/dbpm?charset=utf8&parseTime=True")
 	if err != nil {
 		panic("failed to connect database")
 	}
 	defer db.Close()
 
-	vars := mux.Vars(r)
-	name := vars["name"]
-	email := vars["email"]
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var userjson UserJson
+	json.Unmarshal(reqBody, &userjson)
 
 	var user User
-	db.Where("name = ?", name).Find(&user)
+	db.Where("id = ?", userjson.Id).Find(&user)
 
-	user.Email = email
+	user.Email = userjson.Email
+	user.Name = userjson.Name
 
 	db.Save(&user)
 	fmt.Fprintf(w, "Successfully Updated User")
@@ -112,7 +119,7 @@ func handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/users", allUsers).Methods("GET")
 	myRouter.HandleFunc("/user", deleteUser).Methods("DELETE")
-	myRouter.HandleFunc("/user/{name}/{email}", updateUser).Methods("PUT")
+	myRouter.HandleFunc("/user", updateUser).Methods("PUT")
 	myRouter.HandleFunc("/user", newUser).Methods("POST")
 	log.Fatal(http.ListenAndServe(":8000", myRouter))
 }
